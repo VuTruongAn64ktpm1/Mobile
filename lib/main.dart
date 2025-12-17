@@ -14,6 +14,7 @@ import 'presentation/screens/auth/login_screen.dart'; // File mới
 import 'presentation/screens/auth/sign_up_screen.dart'; // File mới
 import 'presentation/screens/auth/forgot_password_screen.dart'; // File mới
 import 'presentation/screens/auth/onboarding_screen.dart';
+import 'presentation/screens/settings/profile_screen.dart';
 void main() {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.dark));
   runApp(const MyApp());
@@ -37,6 +38,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const OnboardingScreen(),
         '/main': (context) => const MainScreen(),
+        '/profile': (context) => const ProfileScreen(),
         '/scam_alert': (context) => const IncomingScamScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/help': (context) => const HelpScreen(),
