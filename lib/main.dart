@@ -8,7 +8,8 @@ import 'presentation/screens/protection/scam_alert_screen.dart';
 import 'presentation/screens/settings/settings_screen.dart';
 import 'presentation/screens/settings/help_screen.dart';
 import 'presentation/screens/settings/contact_detail_screen.dart';
-
+import 'presentation/screens/settings/call_settings_screen.dart'; 
+import 'presentation/screens/settings/app_info_screen.dart'; 
 void main() {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.dark));
   runApp(const MyApp());
@@ -37,6 +38,9 @@ class MyApp extends StatelessWidget {
         '/settings': (context) => const SettingsScreen(),
         '/help': (context) => const HelpScreen(),
         '/detail': (context) => const ContactDetailScreen(),
+        '/settings': (context) => const SettingsScreen(),
+        '/settings/call': (context) => const CallSettingsScreen(), // Thêm dòng này
+        '/settings/info': (context) => const AppInfoScreen(),
       },
     );
   }
