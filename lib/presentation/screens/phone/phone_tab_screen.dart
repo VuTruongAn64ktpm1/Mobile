@@ -1,40 +1,187 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+
 import '../../../core/app_colors.dart';
-import 'views/history_view.dart';
-import 'views/contacts_view.dart';
-import 'views/favorites_view.dart';
-import 'dialpad_view.dart';
+import '../../../services/sample_contacts_service.dart';
 
 class PhoneTabContainer extends StatefulWidget {
-  const PhoneTabContainer({super.key});
+  /// 🔔 CALLBACK GỌI THỬ
+  final void Function(String phone)? onCall;
+
+  const PhoneTabContainer({
+    super.key,
+    this.onCall,
+  });
+
   @override
   State<PhoneTabContainer> createState() => _PhoneTabContainerState();
 }
 
 class _PhoneTabContainerState extends State<PhoneTabContainer> {
-  int _index = 0;
+  final TextEditingController _searchController = TextEditingController();
+
+  List<ContactModel> _allContacts = [];
+  List<ContactModel> _filteredContacts = [];
+
+  bool _isLoading = true;
+  String? _error;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContacts();
+    _searchController.addListener(_onSearch);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// ===== LOAD DATA (SAFE) =====
+  Future<void> _loadContacts() async {
+    try {
+      final data = await SampleContactsService.getContacts();
+      if (!mounted) return;
+      setState(() {
+        _allContacts = data;
+        _filteredContacts = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Không thể tải danh bạ';
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// ===== SEARCH (DEBOUNCE) =====
+  void _onSearch() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      final query = _searchController.text.toLowerCase();
+
+      setState(() {
+        if (query.isEmpty) {
+          _filteredContacts = _allContacts;
+        } else {
+          _filteredContacts = _allContacts.where((c) {
+            return c.nameLower.contains(query) ||
+                c.phone.contains(query);
+          }).toList();
+        }
+      });
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
+    // ⏳ LOADING
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // ❌ ERROR
+    if (_error != null) {
+      return Center(
+        child: Text(
+          _error!,
+          style: const TextStyle(color: Colors.red),
+        ),
+      );
+    }
+
+    return SafeArea(
+      child: Column(
         children: [
-          Padding(padding: const EdgeInsets.only(bottom: 80), child: _content()),
-          Positioned(
-            bottom: 20, left: 20, right: 20,
-            child: Row(children: [
-              Expanded(child: Container(height: 60, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))]), child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [_icon(Icons.history, 0), _icon(Icons.perm_contact_calendar_outlined, 1), _icon(Icons.favorite_border, 2)]))),
-              const SizedBox(width: 16),
-              GestureDetector(onTap: () => showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (_) => Container(height: MediaQuery.of(context).size.height * 0.9, decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))), child: const DialpadView())), child: Container(width: 60, height: 60, decoration: BoxDecoration(color: AppColors.primaryBlue, borderRadius: BorderRadius.circular(16)), child: const Icon(Icons.apps, color: Colors.white, size: 28)))
-            ]),
-          )
+          // 🔍 SEARCH BAR
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Tìm kiếm số điện thoại',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: _clearSearch,
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+
+          // 📞 CONTACT LIST / EMPTY STATE
+          Expanded(
+            child: _filteredContacts.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Không tìm thấy liên hệ',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                : ListView.builder(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    itemCount: _filteredContacts.length,
+                    itemBuilder: (context, index) {
+                      final contact = _filteredContacts[index];
+                      final avatarChar = contact.name.isNotEmpty
+                          ? contact.name[0].toUpperCase()
+                          : '?';
+
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.avatarBlue,
+                          child: Text(
+                            avatarChar,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          contact.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(contact.phone),
+
+                        /// 🔔 ICON GỌI THỬ
+                        trailing: IconButton(
+                          icon: const Icon(
+                            Icons.call,
+                            color: Colors.grey,
+                          ),
+                          onPressed: widget.onCall == null
+                              ? null
+                              : () => widget.onCall!(contact.phone),
+                        ),
+                      );
+                    },
+                  ),
+          ),
         ],
       ),
     );
   }
-  Widget _content() {
-    if (_index == 0) return const HistoryView();
-    if (_index == 1) return const ContactsView();
-    return const FavoritesView();
-  }
-  Widget _icon(IconData i, int x) => IconButton(icon: Icon(i, color: _index == x ? Colors.black : Colors.grey[400]), onPressed: () => setState(() => _index = x));
 }

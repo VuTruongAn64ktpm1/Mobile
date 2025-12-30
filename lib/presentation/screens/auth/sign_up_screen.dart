@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/app_colors.dart';
+import '../../../services/auth_service.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -8,86 +10,211 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  bool _obscurePass = true;
-  bool _obscureConfirm = true;
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
+
+  bool _loading = false;
+  bool _obscure1 = true;
+  bool _obscure2 = true;
+
+  Future<void> _signUp() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    if (_passwordController.text != _confirmController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mật khẩu không khớp')),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+
+    final error = await AuthService.signUp(
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    setState(() => _loading = false);
+
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/main');
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent, elevation: 0,
-        leading: const BackButton(color: Colors.black),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          children: [
-            const SizedBox(height: 10),
-            const Text("Đăng kí", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 30),
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
+        appBar: AppBar(
+          leading: const BackButton(),
+          title: const Text('Đăng ký'),
+          centerTitle: true,
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                const SizedBox(height: 32),
 
-            _buildInput("Họ tên"),
-            const SizedBox(height: 16),
-            _buildInput("Email"),
-            const SizedBox(height: 16),
-            _buildPassInput("Mật khẩu", _obscurePass, () => setState(() => _obscurePass = !_obscurePass)),
-            const SizedBox(height: 16),
-            _buildPassInput("Xác nhận mật khẩu", _obscureConfirm, () => setState(() => _obscureConfirm = !_obscureConfirm)),
-            
-            const SizedBox(height: 30),
-             SizedBox(
-              width: double.infinity, height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007AFF), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25))),
-                onPressed: () {}, // Logic đăng ký
-                child: const Text("Đăng kí", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
+                /// HỌ TÊN
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Họ tên',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                /// EMAIL
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                /// MẬT KHẨU
+                TextField(
+                  controller: _passwordController,
+                  obscureText: _obscure1,
+                  decoration: InputDecoration(
+                    labelText: 'Mật khẩu',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscure1
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscure1 = !_obscure1),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                /// XÁC NHẬN MẬT KHẨU
+                TextField(
+                  controller: _confirmController,
+                  obscureText: _obscure2,
+                  decoration: InputDecoration(
+                    labelText: 'Xác nhận mật khẩu',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscure2
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscure2 = !_obscure2),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                /// NÚT ĐĂNG KÝ
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                    onPressed: _loading ? null : _signUp,
+                    child: _loading
+                        ? const CircularProgressIndicator(
+                            color: Colors.white,
+                          )
+                        : const Text(
+                            'Đăng ký',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                /// OR
+                Row(
+                  children: const [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('OR'),
+                    ),
+                    Expanded(child: Divider()),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                /// GOOGLE
+                _socialButton(
+                  icon: Icons.g_mobiledata,
+                  text: 'Tiếp tục với Google',
+                ),
+
+                const SizedBox(height: 12),
+
+                /// FACEBOOK
+                _socialButton(
+                  icon: Icons.facebook,
+                  text: 'Tiếp tục với Facebook',
+                ),
+
+                const SizedBox(height: 24),
+              ],
             ),
-
-            const SizedBox(height: 24),
-            _buildOrDivider(),
-            const SizedBox(height: 24),
-            _buildSocialButton("Tiếp tục với Google", Icons.g_mobiledata),
-            const SizedBox(height: 16),
-            _buildSocialButton("Tiếp tục với Facebook", Icons.facebook, iconColor: Colors.blue),
-            const SizedBox(height: 30),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildInput(String hint) {
-    return TextField(
-      decoration: InputDecoration(
-        hintText: hint,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      ),
-    );
-  }
-
-  Widget _buildPassInput(String hint, bool obscure, VoidCallback onToggle) {
-    return TextField(
-      obscureText: obscure,
-      decoration: InputDecoration(
-        hintText: hint,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        suffixIcon: IconButton(icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey), onPressed: onToggle),
-      ),
-    );
-  }
-  
-  Widget _buildOrDivider() {
-    return Row(children: const [Expanded(child: Divider()), Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text("OR", style: TextStyle(color: Colors.grey, fontSize: 12))), Expanded(child: Divider())]);
-  }
-
-  Widget _buildSocialButton(String text, IconData icon, {Color iconColor = Colors.black}) {
+  Widget _socialButton({
+    required IconData icon,
+    required String text,
+  }) {
     return Container(
-      width: double.infinity, height: 50,
-      decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(25)),
-      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: iconColor, size: 28), const SizedBox(width: 12), Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))]),
+      height: 48,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon),
+          const SizedBox(width: 8),
+          Text(text),
+        ],
+      ),
     );
   }
 }

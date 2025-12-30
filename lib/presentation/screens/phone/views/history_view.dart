@@ -14,7 +14,8 @@ class HistoryView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Container(
-              height: 48,
+              height: 56, // tăng chiều cao
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey[300]!),
                 borderRadius: BorderRadius.circular(8),
@@ -24,30 +25,38 @@ class HistoryView extends StatelessWidget {
                   const SizedBox(width: 12),
                   const Icon(Icons.account_circle, color: AppColors.primaryBlue),
                   const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text("Tìm kiếm số điện thoại", style: TextStyle(color: Colors.grey)),
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: "Tìm kiếm số điện thoại",
+                        border: InputBorder.none,
+                      ),
+                      onChanged: (value) {
+                        // TODO: Xử lý tìm kiếm ở đây
+                      },
+                    ),
                   ),
                   // --- BẮT ĐẦU: MENU 3 CHẤM ---
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: Colors.grey),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    onSelected: (value) {
-                      if (value == 'settings') {
-                        Navigator.pushNamed(context, '/settings');
-                      }
-                      // Các case khác bạn có thể xử lý sau
-                    },
-                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                      _buildMenuItem('outgoing', Icons.call_made, 'Cuộc gọi đi', Colors.blue),
-                      _buildMenuItem('incoming', Icons.call_received, 'Cuộc gọi đến', Colors.green),
-                      _buildMenuItem('missed', Icons.call_missed, 'Các cuộc gọi nhỡ', Colors.red),
-                      _buildMenuItem('blocked', Icons.block, 'Cuộc gọi bị chặn', Colors.red),
-                      const PopupMenuDivider(),
-                      _buildMenuItem('delete_all', Icons.delete_outline, 'Xóa tất cả cuộc gọi', Colors.grey),
-                      _buildMenuItem('sim', Icons.sim_card_outlined, 'Đặt SIM mặc định', Colors.grey),
-                      _buildMenuItem('settings', Icons.settings_outlined, 'Thiết lập', Colors.grey),
-                    ],
-                  ),
+                  // PopupMenuButton<String>(
+                  //   icon: const Icon(Icons.more_vert, color: Colors.grey),
+                  //   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  //   onSelected: (value) {
+                  //     if (value == 'settings') {
+                  //       Navigator.pushNamed(context, '/settings');
+                  //     }
+                  //     // Các case khác bạn có thể xử lý sau
+                  //   },
+                  //   itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                  //     _buildMenuItem('outgoing', Icons.call_made, 'Cuộc gọi đi', Colors.blue),
+                  //     _buildMenuItem('incoming', Icons.call_received, 'Cuộc gọi đến', Colors.green),
+                  //     _buildMenuItem('missed', Icons.call_missed, 'Các cuộc gọi nhỡ', Colors.red),
+                  //     _buildMenuItem('blocked', Icons.block, 'Cuộc gọi bị chặn', Colors.red),
+                  //     const PopupMenuDivider(),
+                  //     _buildMenuItem('delete_all', Icons.delete_outline, 'Xóa tất cả cuộc gọi', Colors.grey),
+                  //     _buildMenuItem('sim', Icons.sim_card_outlined, 'Đặt SIM mặc định', Colors.grey),
+                  //     _buildMenuItem('settings', Icons.settings_outlined, 'Thiết lập', Colors.grey),
+                  //   ],
+                  // ),
                   // --- KẾT THÚC: MENU 3 CHẤM ---
                   const SizedBox(width: 4),
                 ],

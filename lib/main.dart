@@ -1,27 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+import 'firebase_options.dart';
+
+// Core
 import 'core/app_colors.dart';
-import 'presentation/screens/auth/onboarding_screen.dart';
-import 'presentation/screens/auth/login_screen.dart';
+
+// Entry
+import 'presentation/app_entry.dart';
+
+// Screens (routes)
 import 'presentation/main_screen.dart';
-import 'presentation/screens/protection/scam_alert_screen.dart';
-import 'presentation/screens/settings/settings_screen.dart';
-import 'presentation/screens/settings/help_screen.dart';
-import 'presentation/screens/settings/contact_detail_screen.dart';
-import 'presentation/screens/settings/call_settings_screen.dart'; 
-import 'presentation/screens/settings/app_info_screen.dart'; 
-import 'presentation/screens/auth/login_screen.dart'; // File mới
-import 'presentation/screens/auth/sign_up_screen.dart'; // File mới
-import 'presentation/screens/auth/forgot_password_screen.dart'; // File mới
-import 'presentation/screens/auth/onboarding_screen.dart';
-import 'presentation/screens/settings/profile_screen.dart';
-import 'presentation/screens/protection/block_inputs/block_phone_screen.dart';
-import 'presentation/screens/protection/block_inputs/block_name_screen.dart';
-import 'presentation/screens/protection/block_inputs/block_country_screen.dart';
-import 'presentation/screens/protection/block_inputs/block_series_screen.dart';
-void main() {
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.dark));
+import 'presentation/screens/auth/login_screen.dart';
+import 'presentation/screens/auth/sign_up_screen.dart';
+import 'presentation/screens/auth/forgot_password_screen.dart';
+
+// Services
+// ...existing code...
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  /// ⭐ KHỞI TẠO FIREBASE
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  /// ⭐ DỮ LIỆU MẪU (có thể comment sau khi test)
+  try {
+   // await SampleContactsService.addSampleContacts();
+  } catch (e, s) {
+    debugPrint('Lỗi khi thêm sample contacts: $e');
+    debugPrint('$s');
+  }
+
+  /// ⭐ STATUS BAR
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ),
+  );
+
   runApp(const MyApp());
+}
+
+/// 🔥 WIDGET TẮT BÀN PHÍM TOÀN APP
+class DismissKeyboard extends StatelessWidget {
+  final Widget child;
+
+  const DismissKeyboard({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+      },
+      child: child,
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -29,36 +69,39 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'An Tâm Nghe 24/7',
-      theme: ThemeData(
-        scaffoldBackgroundColor: Colors.white,
-        primaryColor: AppColors.primaryBlue,
-        fontFamily: 'Roboto',
-        appBarTheme: const AppBarTheme(backgroundColor: Colors.white, elevation: 0, iconTheme: IconThemeData(color: Colors.black), titleTextStyle: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+    return DismissKeyboard(
+      child: MaterialApp(
+        title: 'An Tâm Nghe',
+        debugShowCheckedModeBanner: false,
+
+        /// 🎨 THEME
+        theme: ThemeData(
+          scaffoldBackgroundColor: Colors.white,
+          primaryColor: AppColors.primaryBlue,
+          fontFamily: 'Roboto',
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            iconTheme: IconThemeData(color: Colors.black),
+            titleTextStyle: TextStyle(
+              color: Colors.black,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+
+        /// 🚪 ENTRY THÔNG MINH
+        home: const AppEntry(),
+
+        /// 🧭 ROUTES
+        routes: {
+          '/login': (context) => LoginScreen(),
+          '/main': (context) => const MainScreen(),
+          '/sign_up': (context) => const SignUpScreen(),
+          '/forgot_password': (context) => const ForgotPasswordScreen(),
+        },
       ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const OnboardingScreen(),
-        '/main': (context) => const MainScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/scam_alert': (context) => const IncomingScamScreen(),
-        '/settings': (context) => const SettingsScreen(),
-        '/help': (context) => const HelpScreen(),
-        '/detail': (context) => const ContactDetailScreen(),
-        '/settings': (context) => const SettingsScreen(),
-        '/settings/call': (context) => const CallSettingsScreen(), // Thêm dòng này
-        '/settings/info': (context) => const AppInfoScreen(),
-        '/': (context) => const OnboardingScreen(),
-        '/auth': (context) => const LoginScreen(), // Đổi AuthScreen cũ thành LoginScreen mới
-        '/signup': (context) => const SignUpScreen(), // Thêm route đăng ký
-        '/forgot_password': (context) => const ForgotPasswordScreen(),
-        '/block_phone': (context) => const BlockPhoneScreen(),
-        '/block_name': (context) => const BlockNameScreen(),
-        '/block_country': (context) => const BlockCountryScreen(),
-        '/block_series': (context) => const BlockSeriesScreen(),
-      },
     );
   }
 }

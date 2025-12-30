@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../services/block_service.dart';
 
 class BlockPhoneScreen extends StatefulWidget {
   const BlockPhoneScreen({super.key});
@@ -8,107 +9,173 @@ class BlockPhoneScreen extends StatefulWidget {
 }
 
 class _BlockPhoneScreenState extends State<BlockPhoneScreen> {
-  int _type = 0; // 0: Kinh doanh, 1: Người
+  final TextEditingController _phoneCtrl = TextEditingController();
+  final TextEditingController _nameCtrl = TextEditingController();
+
+  String _countryCode = '+84';
+  bool _isBusiness = true;
+  bool _loading = false;
+
+  final List<Map<String, String>> _countries = const [
+    {'name': 'Vietnam', 'code': '+84'},
+    {'name': 'United States', 'code': '+1'},
+    {'name': 'Japan', 'code': '+81'},
+    {'name': 'Korea', 'code': '+82'},
+  ];
+
+  @override
+  void dispose() {
+    _phoneCtrl.dispose();
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _blockPhone() async {
+    final phone = _phoneCtrl.text.trim();
+    if (phone.isEmpty) return;
+
+    setState(() => _loading = true);
+
+    await BlockService.blockPhone('$_countryCode$phone');
+
+    setState(() => _loading = false);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('✅ Đã chặn số điện thoại'),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final enable = _phoneCtrl.text.trim().isNotEmpty && !_loading;
+
     return Scaffold(
       backgroundColor: Colors.white,
+
+      /// ===== APP BAR =====
       appBar: AppBar(
-        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-        title: const Text("Chặn một số điện thoại", style: TextStyle(fontSize: 18)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Chặn một số điện thoại',
+          style: TextStyle(fontSize: 18),
+        ),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
+
+      body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Dropdown Quốc gia
+            /// ===== COUNTRY DROPDOWN =====
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(4)),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade400),
+                borderRadius: BorderRadius.circular(6),
+              ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   isExpanded: true,
-                  value: "VN",
-                  items: const [DropdownMenuItem(value: "VN", child: Text("Vietnam (+84)"))],
-                  onChanged: (val) {},
+                  value: _countryCode,
+                  items: _countries
+                      .map(
+                        (c) => DropdownMenuItem<String>(
+                          value: c['code'],
+                          child: Text('${c['name']} (${c['code']})'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (val) =>
+                      setState(() => _countryCode = val!),
                 ),
               ),
             ),
+
             const SizedBox(height: 16),
-            _buildInput("Số điện thoại"),
+
+            /// ===== PHONE =====
+            TextField(
+              controller: _phoneCtrl,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                hintText: 'Số điện thoại',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+
             const SizedBox(height: 16),
-            _buildInput("Tên"),
+
+            /// ===== NAME =====
+            TextField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                hintText: 'Tên',
+                border: OutlineInputBorder(),
+              ),
+            ),
+
             const SizedBox(height: 16),
-            
-            // Radio Button
+
+            /// ===== TYPE =====
             Row(
               children: [
-                _buildRadio(0, "Kinh doanh"),
+                Radio<bool>(
+                  value: true,
+                  groupValue: _isBusiness,
+                  onChanged: (v) => setState(() => _isBusiness = v!),
+                ),
+                const Text('Kinh doanh'),
                 const SizedBox(width: 24),
-                _buildRadio(1, "Người"),
+                Radio<bool>(
+                  value: false,
+                  groupValue: _isBusiness,
+                  onChanged: (v) => setState(() => _isBusiness = v!),
+                ),
+                const Text('Người'),
               ],
             ),
+
             const SizedBox(height: 24),
-            
-            // Nút Chặn (Màu xám)
+
+            /// ===== BUTTON =====
             SizedBox(
-              width: double.infinity, height: 48,
+              width: double.infinity,
+              height: 48,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD1D5DB), elevation: 0),
-                onPressed: () {},
-                child: const Text("CHẶN", style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      enable ? const Color(0xFF9CA3AF) : Colors.grey.shade300,
+                  elevation: 0,
+                ),
+                onPressed: enable ? _blockPhone : null,
+                child: _loading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'CHẶN',
+                        style: TextStyle(color: Colors.white),
+                      ),
               ),
             ),
-            
-            const SizedBox(height: 30),
-            const Text("Các số bị chặn", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            
-            // List item mẫu
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("+84559152180", style: TextStyle(fontSize: 16)),
-                    const SizedBox(height: 4),
-                    Text("0559 152 180  •  12/12/2025", style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-                  ],
-                ),
-                Icon(Icons.remove_circle_outline, color: Colors.grey[400])
-              ],
-            )
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildInput(String hint) {
-    return TextField(
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey[400]),
-        border: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey[300]!)),
-        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey[300]!)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      ),
-    );
-  }
-
-  Widget _buildRadio(int val, String label) {
-    return GestureDetector(
-      onTap: () => setState(() => _type = val),
-      child: Row(
-        children: [
-          Icon(_type == val ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: const Color(0xFF007AFF)),
-          const SizedBox(width: 8),
-          Text(label),
-        ],
       ),
     );
   }
