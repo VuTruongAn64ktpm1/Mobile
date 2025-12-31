@@ -8,9 +8,14 @@ import 'screens/protection/protection_screen.dart';
 import '../services/call_filter_service.dart';
 import '../services/focus_mode_service.dart';
 
+// ❌ KHÔNG DÙNG NỮA
+// import 'screens/call_alert/normal_call_info_screen.dart';
+
 import 'screens/call_alert/spam_call_alert_screen.dart';
 import 'screens/call_alert/emergency_call_screen.dart';
-import 'screens/call_alert/normal_call_info_screen.dart';
+
+// ✅ POPUP AN TOÀN
+import 'widgets/call_safety_popup.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -75,11 +80,15 @@ class _MainScreenState extends State<MainScreen> {
         );
         break;
 
+      /// ✅ GỌI BÌNH THƯỜNG → HIỆN POPUP AN TOÀN
       case CallDecision.ring:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => NormalCallInfoScreen(phoneNumber: phone),
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => CallSafetyPopup(
+            phoneNumber: phone,
+            isSpam: false, // sau này lấy từ backend
           ),
         );
         break;
@@ -102,10 +111,9 @@ class _MainScreenState extends State<MainScreen> {
       );
     }
 
-    /// ⭐ KẾT NỐI PHONE TAB + GỌI THỬ
     final pages = [
       PhoneTabContainer(
-        onCall: simulateIncomingCall, // 🔔 QUAN TRỌNG
+        onCall: simulateIncomingCall,
       ),
       ProtectionScreen(
         isFocusModeOn: isFocusModeOn,
@@ -122,7 +130,7 @@ class _MainScreenState extends State<MainScreen> {
             children: pages,
           ),
 
-          /// 🔴 BANNER FOCUS MODE (UX RÕ RÀNG)
+          /// 🔴 BANNER FOCUS MODE
           if (isFocusModeOn)
             Positioned(
               top: 12,
