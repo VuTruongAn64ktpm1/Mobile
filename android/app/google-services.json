@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "615527120802",
+    "project_id": "an-tam-nghe",
+    "storage_bucket": "an-tam-nghe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:615527120802:android:a97758756c1f09b48d7cfb",
+        "android_client_info": {
+          "package_name": "com.example.antam"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRaJZlb2fLPhOlQnFyln8tc_dU9jWaDK8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -59,7 +59,7 @@ class _CallSettingsScreenState extends State<CallSettingsScreen> {
                 Switch(
                   value: value,
                   onChanged: onChanged,
-                  activeColor: Colors.blue,
+                  activeThumbColor: Colors.blue,
                 )
               ],
             )

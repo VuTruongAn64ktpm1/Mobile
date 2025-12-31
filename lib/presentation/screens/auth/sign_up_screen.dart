@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Thư viện xác thực
+import '../../../core/app_colors.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -8,86 +10,211 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  bool _obscurePass = true;
-  bool _obscureConfirm = true;
+  // Controller lấy dữ liệu nhập
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
+  bool _isLoading = false; // Trạng thái loading
+  bool _isObscure = true;  // Ẩn/hiện mật khẩu
+  bool _isObscureConfirm = true; // Ẩn/hiện mật khẩu xác nhận
+
+  // HÀM ĐĂNG KÝ
+  void _signUp() async {
+    String email = _emailController.text.trim();
+    String password = _passwordController.text.trim();
+    String confirmPassword = _confirmPasswordController.text.trim();
+
+    // 1. Kiểm tra dữ liệu đầu vào
+    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập đầy đủ thông tin!')),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mật khẩu xác nhận không khớp!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mật khẩu phải có ít nhất 6 ký tự!'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    // 2. Bắt đầu xử lý
+    setState(() => _isLoading = true);
+
+    try {
+      // 3. Gọi Firebase tạo tài khoản
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // 4. Nếu thành công
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đăng ký thành công! Đang đăng nhập...'), backgroundColor: Colors.green),
+        );
+        
+        // Đóng màn hình Đăng ký lại. 
+        // Vì đã đăng nhập thành công, AuthGate ở main.dart sẽ tự động chuyển màn hình Login thành MainScreen.
+        Navigator.pop(context); 
+      }
+
+    } on FirebaseAuthException catch (e) {
+      // 5. Xử lý lỗi từ Firebase
+      String message = "Đăng ký thất bại.";
+      if (e.code == 'weak-password') {
+        message = "Mật khẩu quá yếu.";
+      } else if (e.code == 'email-already-in-use') {
+        message = "Email này đã được sử dụng.";
+      } else if (e.code == 'invalid-email') {
+        message = "Email không hợp lệ.";
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Lỗi: $e"), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      // 6. Tắt loading
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.transparent, elevation: 0,
-        leading: const BackButton(color: Colors.black),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          children: [
-            const SizedBox(height: 10),
-            const Text("Đăng kí", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 30),
-
-            _buildInput("Họ tên"),
-            const SizedBox(height: 16),
-            _buildInput("Email"),
-            const SizedBox(height: 16),
-            _buildPassInput("Mật khẩu", _obscurePass, () => setState(() => _obscurePass = !_obscurePass)),
-            const SizedBox(height: 16),
-            _buildPassInput("Xác nhận mật khẩu", _obscureConfirm, () => setState(() => _obscureConfirm = !_obscureConfirm)),
-            
-            const SizedBox(height: 30),
-             SizedBox(
-              width: double.infinity, height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007AFF), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25))),
-                onPressed: () {}, // Logic đăng ký
-                child: const Text("Đăng kí", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-            _buildOrDivider(),
-            const SizedBox(height: 24),
-            _buildSocialButton("Tiếp tục với Google", Icons.g_mobiledata),
-            const SizedBox(height: 16),
-            _buildSocialButton("Tiếp tục với Facebook", Icons.facebook, iconColor: Colors.blue),
-            const SizedBox(height: 30),
-          ],
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context), // Quay lại đăng nhập
         ),
       ),
-    );
-  }
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 10),
+              Text(
+                "Tạo tài khoản",
+                style: TextStyle(
+                  fontSize: 28, 
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryBlue,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Đăng ký để sử dụng đầy đủ tính năng bảo vệ.",
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+              const SizedBox(height: 40),
 
-  Widget _buildInput(String hint) {
-    return TextField(
-      decoration: InputDecoration(
-        hintText: hint,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              // Ô nhập Email
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: "Email",
+                  prefixIcon: const Icon(Icons.email_outlined),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Ô nhập Mật khẩu
+              TextField(
+                controller: _passwordController,
+                obscureText: _isObscure,
+                decoration: InputDecoration(
+                  labelText: "Mật khẩu",
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () => setState(() => _isObscure = !_isObscure),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Ô Xác nhận Mật khẩu
+              TextField(
+                controller: _confirmPasswordController,
+                obscureText: _isObscureConfirm,
+                decoration: InputDecoration(
+                  labelText: "Xác nhận mật khẩu",
+                  prefixIcon: const Icon(Icons.lock_reset),
+                  suffixIcon: IconButton(
+                    icon: Icon(_isObscureConfirm ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () => setState(() => _isObscureConfirm = !_isObscureConfirm),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              // Nút Đăng ký
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _signUp,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "ĐĂNG KÝ NGAY",
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+              // Nút quay lại đăng nhập
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Đã có tài khoản? "),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Text(
+                      "Đăng nhập",
+                      style: TextStyle(
+                        color: AppColors.primaryBlue, 
+                        fontWeight: FontWeight.bold
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
-    );
-  }
-
-  Widget _buildPassInput(String hint, bool obscure, VoidCallback onToggle) {
-    return TextField(
-      obscureText: obscure,
-      decoration: InputDecoration(
-        hintText: hint,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        suffixIcon: IconButton(icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey), onPressed: onToggle),
-      ),
-    );
-  }
-  
-  Widget _buildOrDivider() {
-    return Row(children: const [Expanded(child: Divider()), Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text("OR", style: TextStyle(color: Colors.grey, fontSize: 12))), Expanded(child: Divider())]);
-  }
-
-  Widget _buildSocialButton(String text, IconData icon, {Color iconColor = Colors.black}) {
-    return Container(
-      width: double.infinity, height: 50,
-      decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(25)),
-      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: iconColor, size: 28), const SizedBox(width: 12), Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))]),
     );
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/app_colors.dart';
+import '../../../../data/local/database_helper.dart'; // Import Database
 
 class BlockPhoneScreen extends StatefulWidget {
   const BlockPhoneScreen({super.key});
@@ -8,107 +10,166 @@ class BlockPhoneScreen extends StatefulWidget {
 }
 
 class _BlockPhoneScreenState extends State<BlockPhoneScreen> {
-  int _type = 0; // 0: Kinh doanh, 1: Người
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController(); // Thêm nhập tên gợi nhớ
+  String _selectedType = 'Lừa đảo'; // Mặc định là lừa đảo
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  // Hàm xử lý khi bấm nút "Chặn ngay"
+  void _onBlockPressed() async {
+    String phone = _phoneController.text.trim();
+    String name = _nameController.text.trim();
+
+    // 1. Kiểm tra dữ liệu đầu vào
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập số điện thoại!')),
+      );
+      return;
+    }
+
+    try {
+      // 2. Lưu vào SQLite (DatabaseHelper)
+      await DatabaseHelper.instance.insertBlacklist({
+        'phone_number': phone,
+        'user_id': 'USER_DEVICE', // Đánh dấu do người dùng tự chặn
+        'label': _selectedType,   // Loại: Lừa đảo/Spam/Đòi nợ...
+        'source': 'MANUAL',       // Nguồn: Nhập tay
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      if (!mounted) return; // Kiểm tra màn hình còn tồn tại không
+
+      // 3. Thông báo và thoát
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã thêm vào danh sách chặn!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context); // Quay về màn hình trước
+      
+    } catch (e) {
+      print("Lỗi Database: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lỗi: Số này có thể đã tồn tại trong danh sách.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-        title: const Text("Chặn một số điện thoại", style: TextStyle(fontSize: 18)),
-        elevation: 0,
+        title: const Text("Chặn số điện thoại"),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Dropdown Quốc gia
+            const Text(
+              "Nhập số điện thoại muốn chặn:",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            
+            // Ô nhập số điện thoại
+            TextField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                hintText: "Ví dụ: 0987654321",
+                prefixIcon: const Icon(Icons.phone),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                filled: true,
+                fillColor: Colors.grey[100],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            const Text(
+              "Tên gợi nhớ (Tùy chọn):",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+
+            // Ô nhập tên
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                hintText: "Ví dụ: Đòi nợ FE",
+                prefixIcon: const Icon(Icons.person),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                filled: true,
+                fillColor: Colors.grey[100],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            const Text("Chọn loại chặn:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+
+            // Dropdown chọn loại
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(4)),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
+                  value: _selectedType,
                   isExpanded: true,
-                  value: "VN",
-                  items: const [DropdownMenuItem(value: "VN", child: Text("Vietnam (+84)"))],
-                  onChanged: (val) {},
+                  items: <String>['Lừa đảo', 'Spam', 'Đòi nợ', 'Quấy rối']
+                      .map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    setState(() {
+                      _selectedType = newValue!;
+                    });
+                  },
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            _buildInput("Số điện thoại"),
-            const SizedBox(height: 16),
-            _buildInput("Tên"),
-            const SizedBox(height: 16),
-            
-            // Radio Button
-            Row(
-              children: [
-                _buildRadio(0, "Kinh doanh"),
-                const SizedBox(width: 24),
-                _buildRadio(1, "Người"),
-              ],
-            ),
-            const SizedBox(height: 24),
-            
-            // Nút Chặn (Màu xám)
+            const Spacer(),
+
+            // Nút Lưu / Chặn
             SizedBox(
-              width: double.infinity, height: 48,
+              width: double.infinity,
+              height: 50,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD1D5DB), elevation: 0),
-                onPressed: () {},
-                child: const Text("CHẶN", style: TextStyle(color: Colors.white)),
+                onPressed: _onBlockPressed,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue, // Hoặc Colors.red nếu muốn cảnh báo mạnh
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text(
+                  "CHẶN NGAY",
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
-            
-            const SizedBox(height: 30),
-            const Text("Các số bị chặn", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            
-            // List item mẫu
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("+84559152180", style: TextStyle(fontSize: 16)),
-                    const SizedBox(height: 4),
-                    Text("0559 152 180  •  12/12/2025", style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-                  ],
-                ),
-                Icon(Icons.remove_circle_outline, color: Colors.grey[400])
-              ],
-            )
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildInput(String hint) {
-    return TextField(
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey[400]),
-        border: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey[300]!)),
-        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey[300]!)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      ),
-    );
-  }
-
-  Widget _buildRadio(int val, String label) {
-    return GestureDetector(
-      onTap: () => setState(() => _type = val),
-      child: Row(
-        children: [
-          Icon(_type == val ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: const Color(0xFF007AFF)),
-          const SizedBox(width: 8),
-          Text(label),
-        ],
       ),
     );
   }

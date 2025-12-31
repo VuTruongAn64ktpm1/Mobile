@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/app_colors.dart';
+import '../../../../core/app_colors.dart';
 
 class ProtectionScreen extends StatefulWidget {
   const ProtectionScreen({super.key});
@@ -9,14 +9,13 @@ class ProtectionScreen extends StatefulWidget {
 }
 
 class _ProtectionScreenState extends State<ProtectionScreen> {
-  // Trạng thái các công tắc (Giả lập)
-  bool isProtectionOn = true;
-  bool notifBlockedCall = true;
-  bool notifBlockedMsg = true;
-  bool blockBusiness = true;
-  bool blockInternational = true;
-  bool blockHidden = true;
-  bool blockStranger = true;
+  bool _isProtectionOn = true;
+  bool _notifyBlockedCall = true;
+  bool _notifyBlockedSms = true;
+  bool _blockBusiness = true;
+  bool _blockInternational = false;
+  bool _blockHidden = true;
+  bool _blockNotInContacts = false;
 
   @override
   Widget build(BuildContext context) {
@@ -24,89 +23,87 @@ class _ProtectionScreenState extends State<ProtectionScreen> {
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- 1. HEADER XANH DƯƠNG ---
+            // --- 1. HEADER MÀU XANH ---
             Container(
+              padding: const EdgeInsets.only(top: 60, bottom: 20, left: 20, right: 20),
               width: double.infinity,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF0044CC), Color(0xFF0088FF)], // Gradient xanh đậm -> nhạt
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
+                  colors: [Colors.blue.shade700, Colors.blue.shade500],
                 ),
               ),
-              padding: const EdgeInsets.only(top: 60, bottom: 20),
               child: Column(
                 children: [
                   const Text(
                     "Bảo vệ tôi",
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 16),
-                  
-                  // Icon Khiên bảo vệ
+                  const SizedBox(height: 20),
+                  // Icon Khiên
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.verified_user, color: Color(0xFF007AFF), size: 40),
+                    child: Icon(
+                      Icons.shield_rounded,
+                      size: 60,
+                      color: Colors.blue.shade600,
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  
+                  const SizedBox(height: 15),
                   const Text(
                     "Mức độ bảo vệ | Cơ bản",
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 25),
                   
-                  // Công tắc Tắt/Bật (Segmented Control)
+                  // Nút Tắt / Bật
                   Container(
                     width: 200,
-                    height: 40,
-                    padding: const EdgeInsets.all(2),
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.15), // Nền mờ
-                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.blue.shade800.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(30),
                     ),
                     child: Row(
                       children: [
-                        // Nút Tắt
                         Expanded(
                           child: GestureDetector(
-                            onTap: () => setState(() => isProtectionOn = false),
+                            onTap: () => setState(() => _isProtectionOn = false),
                             child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: !isProtectionOn ? Colors.white : Colors.transparent,
-                                borderRadius: BorderRadius.circular(18),
+                                color: !_isProtectionOn ? Colors.blue.shade900 : Colors.transparent,
+                                borderRadius: BorderRadius.circular(25),
                               ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                "Tắt",
-                                style: TextStyle(
-                                  color: !isProtectionOn ? const Color(0xFF007AFF) : Colors.white70,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              child: const Center(
+                                child: Text("Tắt", style: TextStyle(color: Colors.white70)),
                               ),
                             ),
                           ),
                         ),
-                        // Nút Bật
                         Expanded(
                           child: GestureDetector(
-                            onTap: () => setState(() => isProtectionOn = true),
+                            onTap: () => setState(() => _isProtectionOn = true),
                             child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: isProtectionOn ? Colors.white : Colors.transparent,
-                                borderRadius: BorderRadius.circular(18),
+                                color: _isProtectionOn ? Colors.white : Colors.transparent,
+                                borderRadius: BorderRadius.circular(25),
                               ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                "Bật",
-                                style: TextStyle(
-                                  color: isProtectionOn ? const Color(0xFF007AFF) : Colors.white70,
-                                  fontWeight: FontWeight.bold,
+                              child: Center(
+                                child: Text(
+                                  "Bật", 
+                                  style: TextStyle(
+                                    color: _isProtectionOn ? Colors.blue.shade700 : Colors.white70,
+                                    fontWeight: FontWeight.bold
+                                  ),
                                 ),
                               ),
                             ),
@@ -119,169 +116,146 @@ class _ProtectionScreenState extends State<ProtectionScreen> {
               ),
             ),
 
-            // --- 2. NỘI DUNG CÀI ĐẶT ---
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // --- 2. BANNER HỒNG (Spam tin nhắn) ---
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.pink.shade50,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
                 children: [
-                  // Banner màu hồng
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFEBEE), // Hồng nhạt
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: const [
-                        Expanded(
-                          child: Text(
-                            "Tính năng bảo vệ khỏi spam cho tin nhắn",
-                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Icon(Icons.mark_chat_unread_rounded, color: Colors.redAccent, size: 28)
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Section: Cài đặt thông báo
-                  _buildSectionTitle("Cài đặt thông báo"),
-                  _buildSwitchTile("Thông báo các cuộc gọi bị chặn", notifBlockedCall, (v) => setState(() => notifBlockedCall = v)),
-                  const Divider(height: 1),
-                  _buildSwitchTile("Thông báo về các tin nhắn đã bị chặn", notifBlockedMsg, (v) => setState(() => notifBlockedMsg = v)),
-                  
-                  const SizedBox(height: 24),
-
-                  // Section: Thêm vào danh sách chặn
-                  _buildActionItem(context, Icons.call, "Số điện thoại", '/block_phone'),
-                  const Divider(height: 1, indent: 50),
-                  _buildActionItem(context, Icons.person, "Tên người gọi", '/block_name'),
-                  const Divider(height: 1, indent: 50),
-                  _buildActionItem(context, Icons.fingerprint, "ID người gửi", '/block_name'), // Tạm dùng chung giao diện chặn tên
-                  const Divider(height: 1, indent: 50),
-                  _buildActionItem(context, Icons.flag, "Mã quốc gia", '/block_country'),
-                  const Divider(height: 1, indent: 50),
-                  _buildActionItem(context, Icons.dialpad, "Chuỗi số", '/block_series'),
-                                    
-                  const SizedBox(height: 12),
-                  const Center(
+                  const Expanded(
                     child: Text(
-                      "Xem tất cả",
-                      style: TextStyle(color: Color(0xFF007AFF), fontWeight: FontWeight.w500),
+                      "Tính năng bảo vệ khỏi spam cho tin nhắn",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ),
-
-                  const SizedBox(height: 24),
-                  const Divider(thickness: 1),
-                  const SizedBox(height: 16),
-
-                  // Section: Chức năng chặn nâng cao
-                  _buildSectionTitle("Chức năng chặn nâng cao"),
-                  _buildAdvancedSwitch(
-                    Icons.business_center_outlined,
-                    "Chặn các doanh nghiệp đã xác minh",
-                    "Các doanh nghiệp đã được đánh dấu là bị chặn",
-                    blockBusiness,
-                    (v) => setState(() => blockBusiness = v),
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  
-                  _buildAdvancedSwitch(
-                    Icons.public,
-                    "Các số nước ngoài",
-                    "Chỉ quốc gia của bạn",
-                    blockInternational,
-                    (v) => setState(() => blockInternational = v),
-                  ),
-                  const Divider(height: 1, indent: 56),
-
-                  _buildAdvancedSwitch(
-                    Icons.mobile_off_outlined,
-                    "Số điện thoại ẩn",
-                    "Chặn tất số của số lạ",
-                    blockHidden,
-                    (v) => setState(() => blockHidden = v),
-                  ),
-                  const Divider(height: 1, indent: 56),
-
-                  _buildAdvancedSwitch(
-                    Icons.person_off_outlined,
-                    "Số không có trang danh bạ",
-                    "Chỉ danh bạ mới liên hệ được",
-                    blockStranger,
-                    (v) => setState(() => blockStranger = v),
-                  ),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade400,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.message, color: Colors.white, size: 20),
+                  )
                 ],
               ),
             ),
+
+            // --- 3. CÀI ĐẶT THÔNG BÁO ---
+            _buildSectionHeader("Cài đặt thông báo"),
+            _buildSwitchItem("Thông báo các cuộc gọi bị chặn", _notifyBlockedCall, (v) => setState(() => _notifyBlockedCall = v)),
+            Divider(height: 1, color: Colors.grey[200]),
+            _buildSwitchItem("Thông báo về các tin nhắn đã bị chặn", _notifyBlockedSms, (v) => setState(() => _notifyBlockedSms = v)),
             const SizedBox(height: 20),
+
+            // --- 4. DANH SÁCH CHẶN (ENTRY POINTS) ---
+            _buildSectionHeader("Thêm vào danh sách chặn của tôi"),
+            _buildNavItem(context, Icons.phone, "Số điện thoại", '/block_phone'),
+            Divider(height: 1, indent: 50, color: Colors.grey[200]),
+            _buildNavItem(context, Icons.person, "Tên người gọi", '/block_name'), // Cần tạo route này sau
+            Divider(height: 1, indent: 50, color: Colors.grey[200]),
+            _buildNavItem(context, Icons.fingerprint, "ID người gửi", '/block_id'),
+            Divider(height: 1, indent: 50, color: Colors.grey[200]),
+            _buildNavItem(context, Icons.flag, "Mã quốc gia", '/block_country'),
+            Divider(height: 1, indent: 50, color: Colors.grey[200]),
+            _buildNavItem(context, Icons.dialpad, "Chuỗi số", '/block_series'),
+            
+            // Nút Xem tất cả
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  // Chuyển sang màn hình danh sách cũ (scam_alert_screen)
+                  Navigator.pushNamed(context, '/scam_alert');
+                },
+                child: const Text("Xem tất cả", style: TextStyle(color: Colors.blue)),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // --- 5. CHẶN NÂNG CAO ---
+            _buildSectionHeader("Chức năng chặn nâng cao"),
+            _buildAdvancedSwitch(
+              Icons.business_center_outlined, 
+              "Chặn các doanh nghiệp đã xác minh", 
+              "Các doanh nghiệp đã được đánh dấu là bị chặn",
+              _blockBusiness,
+              (v) => setState(() => _blockBusiness = v)
+            ),
+            Divider(height: 1, indent: 50, color: Colors.grey[200]),
+            _buildAdvancedSwitch(
+              Icons.language, 
+              "Các số nước ngoài", 
+              "Chỉ quốc gia của bạn",
+              _blockInternational,
+              (v) => setState(() => _blockInternational = v)
+            ),
+            Divider(height: 1, indent: 50, color: Colors.grey[200]),
+            _buildAdvancedSwitch(
+              Icons.smartphone, 
+              "Số điện thoại ẩn", 
+              "Chặn tất số của số lạ",
+              _blockHidden,
+              (v) => setState(() => _blockHidden = v)
+            ),
+            Divider(height: 1, indent: 50, color: Colors.grey[200]),
+            _buildAdvancedSwitch(
+              Icons.person_off_outlined, 
+              "Số không có trong danh bạ", 
+              "Chỉ danh bạ mới liên hệ được",
+              _blockNotInContacts,
+              (v) => setState(() => _blockNotInContacts = v)
+            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  // Widget tiêu đề nhỏ màu xám
-  Widget _buildSectionTitle(String text) {
+  // --- CÁC WIDGET CON (HELPER) ---
+
+  Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0, left: 4),
-      child: Text(
-        text,
-        style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Text(title, style: const TextStyle(color: Colors.grey, fontSize: 13)),
     );
   }
 
-  // Widget công tắc thường
-  Widget _buildSwitchTile(String title, bool value, Function(bool) onChanged) {
+  Widget _buildSwitchItem(String title, bool value, Function(bool) onChanged) {
     return SwitchListTile(
-      contentPadding: EdgeInsets.zero,
-      activeColor: const Color(0xFF007AFF),
       title: Text(title, style: const TextStyle(fontSize: 15)),
       value: value,
       onChanged: onChanged,
+      activeColor: Colors.blue,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
     );
   }
 
-  // Widget mục danh sách có icon (ListTile)
-Widget _buildActionItem(BuildContext context, IconData icon, String title, String route) {
-  return ListTile(
-    contentPadding: EdgeInsets.zero,
-    leading: Icon(icon, color: Colors.grey[600], size: 22),
-    title: Text(title, style: const TextStyle(fontSize: 15)),
-    onTap: () {
-      Navigator.pushNamed(context, route);
-    },
-  );
-}
+  Widget _buildNavItem(BuildContext context, IconData icon, String title, String route) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.grey),
+      title: Text(title, style: const TextStyle(fontSize: 15)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+      onTap: () {
+        Navigator.pushNamed(context, route);
+      },
+    );
+  }
 
-  // Widget công tắc nâng cao (có icon + subtitle)
   Widget _buildAdvancedSwitch(IconData icon, String title, String subtitle, bool value, Function(bool) onChanged) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.black54, size: 24),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: const Color(0xFF007AFF),
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: SwitchListTile(
+        secondary: Icon(icon, color: Colors.grey[700]),
+        title: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        value: value,
+        onChanged: onChanged,
+        activeColor: Colors.blue,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20),
       ),
     );
   }

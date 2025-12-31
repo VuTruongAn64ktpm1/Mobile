@@ -1,35 +1,111 @@
 import 'package:flutter/material.dart';
-import '../../../core/app_colors.dart';
+import '../../../../core/app_colors.dart';
+import '../../../../data/local/database_helper.dart'; // Import Database
 
-class IncomingScamScreen extends StatelessWidget {
+class IncomingScamScreen extends StatefulWidget {
   const IncomingScamScreen({super.key});
+
+  @override
+  State<IncomingScamScreen> createState() => _IncomingScamScreenState();
+}
+
+class _IncomingScamScreenState extends State<IncomingScamScreen> {
+  // Hàm xóa số khỏi danh sách
+  void _deleteNumber(String phone) async {
+    await DatabaseHelper.instance.removeBlacklist(phone);
+    setState(() {}); // Load lại giao diện sau khi xóa
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Đã bỏ chặn số $phone')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF4A3B3B), Color(0xFF1F2531)], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 60),
-              const Icon(Icons.report_gmailerrorred, color: AppColors.scamRed, size: 60),
-              const SizedBox(height: 16),
-              const Text("Số lạ", style: TextStyle(color: Colors.white, fontSize: 28)),
-              const Text("+0987654321", style: TextStyle(color: Colors.white70, fontSize: 20)),
-              const Spacer(),
-              Container(margin: const EdgeInsets.symmetric(horizontal: 40), padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20), decoration: BoxDecoration(color: AppColors.scamRed, borderRadius: BorderRadius.circular(30)), child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.error_outline, color: Colors.white), SizedBox(width: 8), Text("Báo cáo lừa đảo", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))])),
-              const SizedBox(height: 40),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 50),
-                child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Column(children: [FloatingActionButton(backgroundColor: AppColors.scamRed, onPressed: () => Navigator.pop(context), child: const Icon(Icons.call_end)), const SizedBox(height: 8), const Text("Từ chối", style: TextStyle(color: Colors.white))]),
-                  Column(children: [FloatingActionButton(backgroundColor: Colors.green, onPressed: () => Navigator.pop(context), child: const Icon(Icons.call)), const SizedBox(height: 8), const Text("Nghe máy", style: TextStyle(color: Colors.white))]),
-                ]),
+      appBar: AppBar(
+        title: const Text("Danh Sách Chặn"),
+        centerTitle: true,
+        actions: [
+          // Nút thêm nhanh ở góc trên
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () {
+              Navigator.pushNamed(context, '/block_phone').then((_) {
+                setState(() {}); // Khi quay lại thì reload danh sách
+              });
+            },
+          )
+        ],
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        // Gọi hàm lấy dữ liệu từ SQLite
+        future: DatabaseHelper.instance.getAllBlacklist(), 
+        builder: (context, snapshot) {
+          // 1. Trạng thái đang tải
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // 2. Nếu có lỗi
+          if (snapshot.hasError) {
+            return Center(child: Text("Lỗi: ${snapshot.error}"));
+          }
+
+          final list = snapshot.data ?? [];
+
+          // 3. Nếu danh sách trống
+          if (list.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.shield_outlined, size: 80, color: Colors.grey[300]),
+                  const SizedBox(height: 10),
+                  const Text("An toàn! Chưa có số nào bị chặn.", style: TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/block_phone').then((_) => setState(() {}));
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue),
+                    child: const Text("Thêm số chặn", style: TextStyle(color: Colors.white)),
+                  )
+                ],
               ),
-              const SizedBox(height: 60),
-            ],
-          ),
-        ),
+            );
+          }
+
+          // 4. Hiển thị danh sách
+          return ListView.builder(
+            itemCount: list.length,
+            padding: const EdgeInsets.all(10),
+            itemBuilder: (context, index) {
+              final item = list[index];
+              return Card(
+                elevation: 2,
+                margin: const EdgeInsets.symmetric(vertical: 6),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.red[100],
+                    child: const Icon(Icons.block, color: Colors.red),
+                  ),
+                  title: Text(
+                    item['phone_number'],
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  subtitle: Text(
+                    "${item['label'] ?? 'Chặn thủ công'} • ${item['source'] == 'CLOUD' ? 'Đồng bộ' : 'Cá nhân'}",
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.grey),
+                    onPressed: () => _deleteNumber(item['phone_number']),
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

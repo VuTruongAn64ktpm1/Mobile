@@ -1,111 +1,127 @@
 import 'package:flutter/material.dart';
-import '../../../../core/app_colors.dart';
-import '../../../../data/mock_data.dart';
+import 'package:call_log/call_log.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/phone_service.dart';
+import 'contact_detail_screen.dart';
 
 class HistoryView extends StatelessWidget {
-  const HistoryView({super.key});
+  final CallType? filterType; // Biến nhận bộ lọc từ màn hình chính
+
+  // Constructor nhận thêm filterType (có thể null = hiện tất cả)
+  const HistoryView({super.key, this.filterType});
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          // THANH TÌM KIẾM & MENU 3 CHẤM
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Container(
-              height: 48,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
-                borderRadius: BorderRadius.circular(8),
+    return FutureBuilder<List<CallLogEntry>>(
+      future: PhoneService.getCallHistory(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        final allLogs = snapshot.data ?? [];
+        
+        // --- LOGIC BACKEND: LỌC DỮ LIỆU ---
+        List<CallLogEntry> displayedLogs = [];
+        if (filterType == null) {
+          // Nếu không lọc thì hiện hết
+          displayedLogs = allLogs;
+        } else {
+          // Nếu có lọc, chỉ lấy đúng loại (Đi/Đến/Nhỡ/Chặn)
+          displayedLogs = allLogs.where((log) => log.callType == filterType).toList();
+        }
+
+        if (displayedLogs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.history_toggle_off, size: 50, color: Colors.grey[300]),
+                const SizedBox(height: 10),
+                const Text("Không tìm thấy cuộc gọi nào", style: TextStyle(color: Colors.grey)),
+              ],
+            ),
+          );
+        }
+
+        return ListView.separated(
+          itemCount: displayedLogs.length,
+          separatorBuilder: (ctx, i) => const Divider(height: 1, indent: 70),
+          itemBuilder: (context, index) {
+            final entry = displayedLogs[index];
+            final displayName = entry.name ?? entry.number ?? "Không xác định";
+            
+            return ListTile(
+              onTap: () {
+                Contact tempContact = Contact();
+                tempContact.displayName = displayName;
+                if (entry.number != null) tempContact.phones = [Phone(entry.number!)];
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ContactDetailScreen(contact: tempContact)),
+                );
+              },
+              leading: CircleAvatar(
+                backgroundColor: _getColorForAvatar(entry.callType),
+                child: _getIconForAvatar(entry.callType),
               ),
-              child: Row(
+              title: Text(
+                displayName,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: entry.callType == CallType.missed ? Colors.red : Colors.black,
+                ),
+              ),
+              subtitle: Row(
                 children: [
-                  const SizedBox(width: 12),
-                  const Icon(Icons.account_circle, color: AppColors.primaryBlue),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text("Tìm kiếm số điện thoại", style: TextStyle(color: Colors.grey)),
+                  _getSmallIcon(entry.callType),
+                  const SizedBox(width: 5),
+                  Text(
+                    DateFormat('dd/MM - HH:mm').format(DateTime.fromMillisecondsSinceEpoch(entry.timestamp ?? 0)),
                   ),
-                  // --- BẮT ĐẦU: MENU 3 CHẤM ---
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: Colors.grey),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    onSelected: (value) {
-                      if (value == 'settings') {
-                        Navigator.pushNamed(context, '/settings');
-                      }
-                      // Các case khác bạn có thể xử lý sau
-                    },
-                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                      _buildMenuItem('outgoing', Icons.call_made, 'Cuộc gọi đi', Colors.blue),
-                      _buildMenuItem('incoming', Icons.call_received, 'Cuộc gọi đến', Colors.green),
-                      _buildMenuItem('missed', Icons.call_missed, 'Các cuộc gọi nhỡ', Colors.red),
-                      _buildMenuItem('blocked', Icons.block, 'Cuộc gọi bị chặn', Colors.red),
-                      const PopupMenuDivider(),
-                      _buildMenuItem('delete_all', Icons.delete_outline, 'Xóa tất cả cuộc gọi', Colors.grey),
-                      _buildMenuItem('sim', Icons.sim_card_outlined, 'Đặt SIM mặc định', Colors.grey),
-                      _buildMenuItem('settings', Icons.settings_outlined, 'Thiết lập', Colors.grey),
-                    ],
-                  ),
-                  // --- KẾT THÚC: MENU 3 CHẤM ---
-                  const SizedBox(width: 4),
                 ],
               ),
-            ),
-          ),
-          
-          // ... Phần danh sách bên dưới giữ nguyên
-          SizedBox(
-            height: 100,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.only(left: 16),
-              itemCount: MockData.contacts.length,
-              itemBuilder: (context, index) {
-                final c = MockData.contacts[index];
-                return Padding(
-                  padding: const EdgeInsets.only(right: 20),
-                  child: Column(children: [
-                    CircleAvatar(radius: 28, backgroundColor: AppColors.avatarBlue, child: Text(c["char"], style: const TextStyle(fontSize: 20, color: Colors.black))),
-                    const SizedBox(height: 4),
-                    Text(c["name"], style: const TextStyle(fontSize: 12))
-                  ]),
-                );
-              },
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: MockData.history.length,
-              itemBuilder: (context, index) {
-                final h = MockData.history[index];
-                return ListTile(
-                  leading: CircleAvatar(backgroundColor: AppColors.avatarBlue, child: Text(h["name"][0])),
-                  title: Text(h["name"], style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Row(children: [const Icon(Icons.call_received, size: 14, color: Colors.green), const SizedBox(width: 4), Text(h["time"])]),
-                  trailing: const Icon(Icons.call_outlined, color: Colors.grey),
-                  onTap: () => Navigator.pushNamed(context, '/detail'),
-                );
-              },
-            ),
-          )
-        ],
-      ),
+              trailing: IconButton(
+                icon: const Icon(Icons.call, color: Colors.green),
+                onPressed: () async {
+                   if (entry.number != null) {
+                     final Uri launchUri = Uri(scheme: 'tel', path: entry.number!);
+                     if (await canLaunchUrl(launchUri)) await launchUrl(launchUri);
+                   }
+                },
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
-  // Hàm tạo item cho Menu đẹp hơn
-  PopupMenuItem<String> _buildMenuItem(String value, IconData icon, String text, Color iconColor) {
-    return PopupMenuItem<String>(
-      value: value,
-      child: Row(
-        children: [
-          Icon(icon, color: iconColor, size: 20),
-          const SizedBox(width: 12),
-          Text(text, style: const TextStyle(fontSize: 14)),
-        ],
-      ),
-    );
+  // Helper: Chọn màu nền Avatar theo loại cuộc gọi
+  Color _getColorForAvatar(CallType? type) {
+    if (type == CallType.missed) return Colors.red.shade50;
+    if (type == CallType.blocked) return Colors.grey.shade200;
+    return Colors.blue.shade50;
+  }
+
+  // Helper: Chọn icon trong Avatar
+  Widget _getIconForAvatar(CallType? type) {
+    if (type == CallType.missed) return const Text("!", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 20));
+    if (type == CallType.blocked) return const Icon(Icons.block, color: Colors.grey, size: 20);
+    return const Icon(Icons.person, color: Colors.blue);
+  }
+
+  // Helper: Icon nhỏ báo trạng thái
+  Widget _getSmallIcon(CallType? type) {
+    switch (type) {
+      case CallType.outgoing: return const Icon(Icons.call_made, size: 14, color: Colors.blue);
+      case CallType.incoming: return const Icon(Icons.call_received, size: 14, color: Colors.green);
+      case CallType.missed: return const Icon(Icons.call_missed, size: 14, color: Colors.red);
+      case CallType.blocked: return const Icon(Icons.block, size: 14, color: Colors.red);
+      default: return const Icon(Icons.help_outline, size: 14, color: Colors.grey);
+    }
   }
 }
